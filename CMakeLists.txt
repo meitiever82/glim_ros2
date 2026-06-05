@@ -102,4 +102,19 @@ if(BUILD_WITH_VIEWER)
   )
 endif()
 
+# Install launch files
+install(DIRECTORY rviz/
+  DESTINATION share/${PROJECT_NAME}/rviz
+)
+
+# Install launch files
+install(DIRECTORY launch/
+  DESTINATION share/${PROJECT_NAME}/launch
+)
+
+# Install launch files
+install(DIRECTORY scripts/
+  DESTINATION share/${PROJECT_NAME}/scripts
+)
+
 ament_auto_package()
