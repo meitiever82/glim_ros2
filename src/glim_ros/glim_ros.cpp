@@ -176,9 +176,20 @@ GlimROS::GlimROS(const rclcpp::NodeOptions& options) : Node("glim_ros", options)
 
   // ROS-related
   using std::placeholders::_1;
-  const std::string imu_topic = config_ros.param<std::string>("glim_ros", "imu_topic", "");
-  const std::string points_topic = config_ros.param<std::string>("glim_ros", "points_topic", "");
-  const std::string image_topic = config_ros.param<std::string>("glim_ros", "image_topic", "");
+  // Topic names come from config_ros.json, but a non-empty ROS parameter of the same name overrides it
+  // (e.g. `ros2 launch ... imu_topic:=/foo/imu`). Remapping cannot do this because the config values are absolute names.
+  const auto get_topic = [&](const std::string& name) {
+    std::string topic = this->declare_parameter<std::string>(name, "");
+    if (topic.empty()) {
+      topic = config_ros.param<std::string>("glim_ros", name, "");
+    } else {
+      spdlog::info("{} overridden by ROS parameter: {}", name, topic);
+    }
+    return topic;
+  };
+  const std::string imu_topic = get_topic("imu_topic");
+  const std::string points_topic = get_topic("points_topic");
+  const std::string image_topic = get_topic("image_topic");
 
   // Subscribers
   rclcpp::SensorDataQoS default_imu_qos;
@@ -298,6 +309,15 @@ size_t GlimROS::points_callback(const sensor_msgs::msg::PointCloud2::ConstShared
     return 0;
   }
   auto preprocessed = preprocessor->preprocess(raw_points);
+
+  // Drop fully-empty scans (e.g., the LiDAR is completely occluded, so every point is filtered out by
+  // the distance/finiteness filters). Feeding a zero-point cloud into odometry crashes the pipeline:
+  // IntegratedVGICPFactor (and the GICP factor) abort() when the source frame has no points. IMU data
+  // is inserted via a separate callback, so the estimator keeps coasting on IMU integration meanwhile.
+  if (preprocessed->size() == 0) {
+    spdlog::warn("skip an empty point cloud (stamp={}); LiDAR may be occluded", raw_points->stamp);
+    return 0;
+  }
 
   if (keep_raw_points) {
     // note: Raw points are used only in extension modules for visualization purposes.

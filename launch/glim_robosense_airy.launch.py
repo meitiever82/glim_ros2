@@ -65,14 +65,13 @@ def generate_launch_description():
         output='screen',
         parameters=[{
             'config_path': LaunchConfiguration('config_path'),
+            # 非空时覆盖 config_ros.json 中的话题 (remapping 无法匹配 json 中的绝对话题名)
+            'imu_topic': LaunchConfiguration('imu_topic'),
+            'points_topic': LaunchConfiguration('points_topic'),
             'debug': LaunchConfiguration('debug'),
             'dump_on_unload': LaunchConfiguration('dump_on_unload'),
             'dump_path': LaunchConfiguration('dump_path'),
         }],
-        remappings=[
-            ('imu', LaunchConfiguration('imu_topic')),
-            ('points', LaunchConfiguration('points_topic')),
-        ],
     )
 
     return LaunchDescription([
