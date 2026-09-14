@@ -84,6 +84,15 @@ target_link_libraries(validator_node
   glim_ros
 )
 
+### trajectory_qc (headless) ###
+ament_auto_add_executable(trajectory_qc
+  src/trajectory_qc.cpp
+)
+target_link_libraries(trajectory_qc
+  glim::glim
+  Boost::program_options
+)
+
 if(BUILD_WITH_VIEWER)
   ### offline_viewer ###
   ament_auto_add_executable(offline_viewer
